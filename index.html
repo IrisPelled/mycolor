@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrated Color Picker and RGB Combiner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('background.png') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+        .button {
+            background-color: pink;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            outline: none;
+            position: absolute;
+            top: 9%;
+            margin-right: 700px;
+        }
+        #canvas {
+            width: 450px;  /* Adjusted to 9:16 aspect ratio */
+            height: 800px; /* Adjusted to 9:16 aspect ratio */
+            border: 1px solid #ccc;
+            position: absolute;
+            top: 15%;
+            margin-right: 700px;
+        }
+        .color-display {
+            width: 200px; height: 200px; border-radius: 50%; margin-top: 20px;
+            background-color: #000;
+            position: relative;/* Positioned below sliders */
+            left: 50px;
+            bottom: 40px;
+            box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+        }
+        .hex-code {
+            position: relative;
+            font-weight: 600;
+            font-size: 20px;
+            bottom: 30px; /* Positioned below the color display */
+            left: 25px;
+        }
+        .slider-container {
+            display: flex; flex-direction: column; align-items: center;
+            position: absolute; right: 50px; top: 35%; /* Adjusted for visibility */
+        }
+        .slider-with-label {
+            margin-bottom: 40px;
+            margin-right: 60px; /* Doubled space between sliders */
+        }
+        input[type="range"] {
+            width: 300px; height: 20px;
+        }
+        img{
+            scale: 150%;
+        }
+        .label {
+            display: block; /* Ensure label is below the slider */
+            text-align: center;
+        }
+        #character {
+            width: 600px; height: auto;
+            position: absolute;
+            left: 0;
+            bottom: 0;
+        }
+        .flashlight {
+            width: 60px; height: 50px;
+            position: absolute;
+            right: -50px; /* Adjust flashlight position relative to sliders */
+            margin-bottom: 50px;
+        }
+        #red-slider{
+            accent-color: red;
+        }
+        #green-slider{
+            accent-color: green;
+        }
+        #blue-slider{
+            accent-color: blue;
+        }
+    </style>
+</head>
+<body>
+    <img id="character" src="character.png" alt="Character Image">
+    <input type="file" id="fileInput" accept="image/*" class="button">
+    <canvas id="canvas"></canvas>
+    
+    <div class="color-display" id="color-display">
+        <div class="hex-code" id="hex-code"></div>
+    </div>
+    
+    
+    
+    <div class="slider-container">
+        <div class="slider-with-label"><input type="range" min="0" max="255" value="0" id="red-slider"> <img src="flashlight.png" class="flashlight" alt="Red Light"><span class="label">Red</span></div>
+        <div class="slider-with-label"><input type="range" min="0" max="255" value="0" id="green-slider"> <img src="flashlight.png" class="flashlight" alt="Green Light"><span class="label">Green</span></div>
+        <div class="slider-with-label"><input type="range" min="0" max="255" value="0" id="blue-slider"> <img src="flashlight.png" class="flashlight" alt="Blue Light"><span class="label">Blue</span></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const fileInput = document.getElementById('fileInput');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const colorDisplay = document.getElementById('color-display');
+            const hexCodeDisplay = document.getElementById('hex-code');
+            const redSlider = document.getElementById('red-slider');
+            const greenSlider = document.getElementById('green-slider');
+            const blueSlider = document.getElementById('blue-slider');
+
+            function updateColor() {
+                const red = parseInt(redSlider.value);
+                const green = parseInt(greenSlider.value);
+                const blue = parseInt(blueSlider.value);
+                const color = `rgb(${red}, ${green}, ${blue})`;
+                colorDisplay.style.backgroundColor = color;
+                hexCodeDisplay.textContent = `Hex Code: ${rgbToHex(red, green, blue)}`;
+            }
+
+            function rgbToHex(r, g, b) {
+                return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            }
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        ctx.drawImage(img, 0, 0);
+                        canvas.addEventListener('click', function(e) {
+                            const rect = canvas.getBoundingClientRect();
+                            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+                            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+                            const imageData = ctx.getImageData(x, y, 1, 1).data;
+                            const pickedColor = `rgb(${imageData[0]}, ${imageData[1]}, ${imageData[2]})`;
+                            colorDisplay.style.backgroundColor = pickedColor;
+                            hexCodeDisplay.textContent = `Picked Color: ${rgbToHex(imageData[0], imageData[1], imageData[2])}`;
+                            [redSlider, greenSlider, blueSlider].forEach((slider, i) => slider.value = imageData[i]);
+                            updateColor(); // Update color display based on picked color
+                        });
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+
+            [redSlider, greenSlider, blueSlider].forEach(slider => slider.addEventListener('input', updateColor));
+            updateColor(); // Initialize with default color
+        });
+    </script>
+</body>
+</html>
